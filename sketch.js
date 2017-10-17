@@ -2,7 +2,7 @@ let points = 0;
 let blobs = [];
 let deleteBlob = false;
 let getPoints = false;
-let sideBarSize = 0.1;
+let sideBarSize = 0.12;
 let gameWidth;
 let gameHeight;
 
@@ -14,6 +14,9 @@ let projectileSpeed = 0.05;
 let shootTimer = 200; // I millisekunder
 let shootTime = 0;
 let shooting = false;
+let projectileSize = 8;
+
+
 
 function setup() {
 	createCanvas(windowWidth, windowHeight);
@@ -26,7 +29,7 @@ function setup() {
 	mouseClickPos = createVector(0,0);
 	mouseReleasedPos = createVector(0,0);
 
-	setInterval(generate, 1000)
+	setInterval(generate, 1000);
 }
 
 function draw() {
@@ -48,6 +51,11 @@ function Blob(xpos, ypos, xvel, yvel, size){
   	this.xvel = xvel;
   	this.yvel = yvel;
   	this.size = size;
+  	this.lerpSize = size;
+
+  	this.points = size;
+  	this.dead = false;
+
 }
 
 function Projectile(xpos, ypos, xvel, yvel, size){
@@ -56,47 +64,85 @@ function Projectile(xpos, ypos, xvel, yvel, size){
   	this.xvel = xvel;
   	this.yvel = yvel;
   	this.size = size;
+  	this.lerpSize = size;
+
+  	this.dead = false;
 }
 
 
 function updateUI(){
 	fill(123,123,123);
-	rect(0, 0, gameWidth, height)
+	rect(0, 0, gameWidth, height);
 	// Points
 	fill(200,200,200);
 	textAlign(CENTER);
-	textSize(32);
+	textSize(25);
 	stroke(0,0,0,100);
 	strokeWeight(5);
 	strokeJoin(ROUND);
 	text("Points: " + points, gameWidth / 2, 50);
 
+	//Upgrade button
+	fill(123,123,123);
+	rect(10, 60, gameWidth -20, 40);
+	fill(200,200,200);
+	text("100 Points", gameWidth/2, 90)
 
 }
 
+
 function updateGame(){
+	// Check Collision with Projectile and Blob. sammanfog alla for loops om lagg??
+	for (b = 0; b < blobs.length; b++){
+		for (p = 0; p < projectiles.length; p++){
+			if (dist(blobs[b].xpos, blobs[b].ypos, projectiles[p].xpos, projectiles[p].ypos) < blobs[b].size / 2 + projectiles[p].size / 2){
+				print ("Colliding!!!");
+				let blobSize = blobs[b].size;
+
+				blobs[b].size -= projectileSize;
+				if (blobs[b].size <= 0){
+					blobs[b].dead = true;
+				}
+
+				//projectiles[p].dead = true;
+				projectiles[p].size -= blobSize;
+				if (projectiles[p].size <= 0) {
+					projectiles[p].dead = true;
+				}
+
+
+			}
+		}
+	}
+	
+
+
+
+	// FOR BLOBS LOOP
 	fill(255,255,255);
 	noStroke();
-	// FOR BLOBS LOOP
 	for (i = 0; i < blobs.length; i++){
-		deleteBlob = false;
-		getPoints = false;
 		blobs[i].xpos += blobs[i].xvel;
 		blobs[i].ypos += blobs[i].yvel;
-		ellipse(blobs[i].xpos, blobs[i].ypos, blobs[i].size);
+		blobs[i].lerpSize = lerp(blobs[i].lerpSize, blobs[i].size, 0.2);
+		ellipse(blobs[i].xpos, blobs[i].ypos, blobs[i].lerpSize);
 		// Check Collision With Mouse
 		/*if (dist(mouseX, mouseY, blobs[i].xpos, blobs[i].ypos) < blobs[i].size / 2){
 		print ("Colliding!");
 		deleteBlob = true;
 		getPoints = true;
 		}*/
+		
 		// Check If Outside Of Canvas
-		outOfCanvas(blobs[i]);
+		if (outOfCanvas(blobs[i])){
+			blobs[i].dead = true;
+			blobs[i].points = 0;
+		}
 
-		if (deleteBlob){
-			if (getPoints){
-				points ++;
-			}
+
+		if (blobs[i].dead){
+			points += blobs[i].points;
+			print ("blob dead");
 			
 			blobs.splice(i,1);
 		}
@@ -105,27 +151,27 @@ function updateGame(){
 	// FOR PROJECTILES LOOP
 	fill(145, 13, 24);
 	for (i = 0; i < projectiles.length; i++){
-		deleteBlob = false;
 		projectiles[i].xpos += projectiles[i].xvel;
 		projectiles[i].ypos += projectiles[i].yvel;
-		ellipse(projectiles[i].xpos, projectiles[i].ypos, projectiles[i].size)
+		projectiles[i].lerpSize = lerp(projectiles[i].lerpSize, projectiles[i].size, 0.2);
+
+		ellipse(projectiles[i].xpos, projectiles[i].ypos, projectiles[i].lerpSize);
 		
+		// out of canvas functionen satte alltid dead till false om innanför canvas
+		
+		if (outOfCanvas(projectiles[i])){
+			projectiles[i].dead = true;
+		}
 
-		outOfCanvas(projectiles[i]);
-	}
-
-
-	// Check Collision with Projectile and Blob. sammanfog alla for loops om lagg??
-	for (b = 0; b < blobs.length; b++){
-		for (p = 0; p < projectiles.length; p++){
-			if (dist(blobs[b].xpos, blobs[b].ypos, projectiles[p].xpos, projectiles[p].ypos) < blobs[b].size / 2 + projectiles[p].size / 2){
-				print ("Colliding!!!!!!!!");
-				points ++;
-				blobs.splice(b,1);
-				projectiles.splice(p,1);
-			}
+		print ("projectile dead " + projectiles[i].dead);
+		if (projectiles[i].dead) {
+			print ("DIE");
+			projectiles.splice(i,1);
 		}
 	}
+
+
+	
 
 
 	// Shoot Projectiles
@@ -144,13 +190,25 @@ function updateGame(){
 	else {
 		shooting = false;
 	}
-
 }
+
+function mousePressed(){
+	// rect(10, 60, gameWidth -20, 40);
+	// Upgrade Button Check
+	if (mouseX > 10 && mouseX < 10 + gameWidth -20 &&
+		mouseY > 60 && mouseY < 100){
+		if (points >= 100){
+			points -= 100;
+			projectileSize *= 2;
+		}
+	}
+}
+
+
 
 function getClickPos(){
 	mouseClickPos.x = mouseX;
 	mouseClickPos.y = mouseY;
-
 }
 /*
 function mousePressed(){
@@ -177,7 +235,7 @@ function shoot(){
 	var distancePos = mouseReleasedPos.sub(mouseClickPos);
 	distancePos = distancePos.normalize();
 	
-	var speed = (distance / 4) * projectileSpeed * 4;
+	var speed = distance * projectileSpeed;
 	var velocity = distancePos.mult(speed);
 
 	//print ("distance " + distance);
@@ -187,7 +245,7 @@ function shoot(){
 	
 
 	if (distancePos.mag() > 0.2) {
-		let projectile = new Projectile(mouseClickPos.x, mouseClickPos.y, velocity.x, velocity.y, 32);
+		let projectile = new Projectile(mouseClickPos.x, mouseClickPos.y, velocity.x, velocity.y, projectileSize);
 		projectiles.push(projectile);
 	}
 }
@@ -197,5 +255,8 @@ function outOfCanvas(thing){
 	|| thing.ypos < 0 - thing.size || thing.ypos > height + thing.size){
 		//print ("DELETE");
 		//deleteBlob = true;
+		return true;
+	} else {
+		return false;
 	}
 }
