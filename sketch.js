@@ -100,6 +100,7 @@ function updateGame(){
 				let blobSize = blobs[b].size;
 
 				blobs[b].size -= projectileSize;
+				blobs[b].size = max(blobs[b].size, 0)
 				if (blobs[b].size <= 0){
 					blobs[b].dead = true;
 				}
@@ -121,7 +122,7 @@ function updateGame(){
 	// FOR BLOBS LOOP
 	fill(255,255,255);
 	noStroke();
-	for (i = 0; i < blobs.length; i++){
+	for (i = blobs.length - 1; i >= 0; i--){
 		blobs[i].xpos += blobs[i].xvel;
 		blobs[i].ypos += blobs[i].yvel;
 		blobs[i].lerpSize = lerp(blobs[i].lerpSize, blobs[i].size, 0.2);
@@ -150,7 +151,7 @@ function updateGame(){
 
 	// FOR PROJECTILES LOOP
 	fill(145, 13, 24);
-	for (i = 0; i < projectiles.length; i++){
+	for (i = projectiles.length - 1; i >= 0; i--){
 		projectiles[i].xpos += projectiles[i].xvel;
 		projectiles[i].ypos += projectiles[i].yvel;
 		projectiles[i].lerpSize = lerp(projectiles[i].lerpSize, projectiles[i].size, 0.2);
